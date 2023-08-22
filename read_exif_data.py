@@ -2,8 +2,8 @@ import exifread
 import json
 
 file = open("./NIR/IMG_00569.jpg", 'rb')
-exif_data = exifread.process_file(file, details= False)
-print(exif_data.keys())
+exif_data = exifread.process_file(file, details= True)
+print(exif_data)
 file.close()
 
 #with open("exif_data.json", "w") as f:
