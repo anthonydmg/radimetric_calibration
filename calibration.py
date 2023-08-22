@@ -32,24 +32,41 @@ input_path = "."
 image_name = "IMG_00366"
 image_rgb = np.asarray(Image.open(f"{input_path}/RGB/{image_name}.jpg"))
 
-slope_coefficient = get_known_panel_reflectance_band(0) / get_panel_reflectance_digital_number(image_rgb, 0)
 
-print("slope_coefficient:", slope_coefficient)
-print("Banda Roja")
-get_panel_reflectance_digital_number(image_rgb[:,:,0])
-print("Banda Verde")
-get_panel_reflectance_digital_number(image_rgb[:,:,1])
-print("Banda Azul")
-get_panel_reflectance_digital_number(image_rgb[:,:,2])
-top_left = np.array([2022, 938])
-bottom_right = np.array([2078, 967])
-color = (255,0,0)
-thickness = 3
-image_rgb = cv2.rectangle(image_rgb, top_left, bottom_right, color, thickness)
+image_rgb_calibrate = image_rgb.copy()
 
-plt.figure(figsize = (16,9))
-plt.imshow(image_rgb)
+for band in range(3):
+
+    slope_coefficient = get_known_panel_reflectance_band(band) / get_panel_reflectance_digital_number(image_rgb_calibrate, band)
+    print("slope_coefficient:", slope_coefficient)
+    image_rgb_calibrate[:,:,band] = (image_rgb_calibrate[:,:,band] * slope_coefficient) * 255
+
+
+fig, axes = plt.subplots(2,4, figsize = (16,10))
+
+axes[0,0].imshow(image_rgb[:,:,0], cmap= "gray")
+axes[0,0].set_title("Banda Roja")
+axes[0,1].imshow(image_rgb[:,:,1], cmap= "gray")
+axes[0,1].set_title("Banda Verde")
+axes[0,2].imshow(image_rgb[:,:,2], cmap= "gray")
+axes[0,2].set_title("Banda Azul")
+axes[0,3].imshow(image_rgb, cmap= "gray")
+axes[0,3].set_title("Imagen RGB")
+axes[1,0].imshow(image_rgb_calibrate[:,:,0], cmap= "gray")
+axes[1,0].set_title("Banda Roja Calibrada")
+axes[1,1].imshow(image_rgb_calibrate[:,:,1], cmap= "gray")
+axes[1,1].set_title("Banda Azul Calibrada")
+axes[1,2].imshow(image_rgb_calibrate[:,:,2], cmap= "gray")
+axes[1,2].set_title("Banda Verde Calibrada")
+axes[1,3].imshow(image_rgb, cmap= "gray")
+axes[1,3].set_title("Imagen RGB Calibrada")
+
 plt.tight_layout()
+
+## Split Bandas
+
 plt.show()
+
+
 #image_nir = np.asarray(Image.open(f"{input_path}/NIR/{image_name}.jpg"))
 
