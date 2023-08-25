@@ -25,6 +25,7 @@ def create_image_df(input_path, output_path  = None):
     image_df["image_root"] = image_df.image_path.apply(os.path.dirname)
     image_df["image_name"] = image_df.image_path.apply(os.path.basename)
     image_df["parent_dir"] = image_df.image_root.apply(lambda path: os.path.split(path)[-1])
+    image_df["output_base_path"] = output_path
     image_df["output_path"] = image_df.image_path.str.replace(input_path, output_path, regex = False)
     
     return image_df 
@@ -190,6 +191,8 @@ def main(input_path, calibration_image_name, top_left_rgb, bottom_right_rgb, top
         )
         
         move_corrected_images(image_df)
+    
+    print(f'\nNuevas imagenes guardadas en {image_df.iloc[0]["output_base_path"]}')
 
 
 if __name__ == "__main__":
