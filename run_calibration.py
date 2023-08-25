@@ -2,16 +2,18 @@ import pandas as pd
 from glob import glob
 import os
 import imgparse
-from sensor_defs import sensor_bands_defs
+from src.sensor_defs import sensor_bands_defs
 import numpy as np
 from PIL import Image
-from teflon_reflectance import teflon_reflectance
+from src.teflon_reflectance import teflon_reflectance
 import tempfile
 import cv2
 import tifffile as tf
 from tqdm import tqdm
 import shutil
 import argparse
+import warnings
+
 
 tqdm.pandas()
 
@@ -55,9 +57,7 @@ def get_panel_reflectance_digital_number(row, top_left_rgb, bottom_right_rgb, to
     elif row["parent_dir"] == "NIR":
         bounds_indices = slice(top_left_nir[1], bottom_right_nir[1]), slice(top_left_nir[0],bottom_right_nir[0])
     panel_pixels = image[bounds_indices]
-    print("panel_pixels:", panel_pixels)
     mean_reflectance_digital_number = panel_pixels.mean()
-    print("Mean DN: {:10.5f}".format(mean_reflectance_digital_number))
     return mean_reflectance_digital_number
 
 def get_known_panel_reflectance(row):
@@ -70,7 +70,7 @@ def get_known_panel_reflectance(row):
 
 
 def compute_reflectance_correction(image_df, calibration_image_name, top_left_rgb, bottom_right_rgb, top_left_nir, bottom_right_nir):
-    calibration_df = image_df[image_df["image_name"] == calibration_image_name]
+    calibration_df = image_df[image_df["image_name"] == calibration_image_name].copy()
     if len(calibration_df) == 0:
         raise Exception(f"No se ha existe la imagen{calibration_image_name}")
     calibration_df["mean_reflectance"] = calibration_df.apply(lambda row: get_panel_reflectance_digital_number(row, top_left_rgb, bottom_right_rgb, top_left_nir, bottom_right_nir), axis=1)
@@ -80,12 +80,10 @@ def compute_reflectance_correction(image_df, calibration_image_name, top_left_rg
         / (calibration_df.mean_reflectance / calibration_df.autoexposure)
     )
 
-    print(calibration_df["slope_coefficient"])
 
     image_df = image_df.merge(
         calibration_df[["band", "slope_coefficient"]], on="band", how="outer"
     )
-    print(image_df.head())
 
     return image_df
 
@@ -162,7 +160,7 @@ def move_corrected_images(image_df):
 
 def main(input_path, calibration_image_name, top_left_rgb, bottom_right_rgb, top_left_nir, bottom_right_nir):
     image_df = create_image_df(input_path)
-
+    print(f"'\n{len(image_df)} imagenes encontradas en el ruta: {input_path}")
 
     image_df = apply_sensor_settings(image_df)
 
@@ -203,15 +201,25 @@ if __name__ == "__main__":
     parser.add_argument("--input_path", default="./capturas/prueba",
                         help="Archivo de datos para entrenamiento")
    
-    parser.add_argument("--calibration_image_name", default="IMG_00366.jpg", help="Archivo de datos con el conjunto de datos de prueba")
+    parser.add_argument("--calibration-image-name", default="IMG_00366.jpg", help="Archivo de datos con el conjunto de datos de prueba")
     
-    parser.add_argument("--top_left_rgb", default = [2022, 938], help="Archivo de datos con el conjunto de datos de validacion")
-    parser.add_argument("--bottom_right_rgb", default = [2078, 967], help="Archivo de datos con el conjunto de datos de validacion")
-    parser.add_argument("--top_left_nir", default = [2005, 1102], help="Archivo de datos con el conjunto de datos de validacion")
-    parser.add_argument("--bottom_right_nir", default = [2077, 1132], help="Archivo de datos con el conjunto de datos de validacion")
+    parser.add_argument('-tlr', '--top-left-rgb', action='store',
+                    type=int, nargs='*', default=[2022,938],
+                    help="Examples: -tlr [2078, 967]")
+    
+    parser.add_argument('-brr', '--bottom-right-rgb', action='store',
+                    type=int, nargs='*', default=[2078, 967],
+                    help="Examples: -i item1 item2, -i item3")
+    
+    parser.add_argument('-tln', '--top-left-nir', action='store',
+                    type=int, nargs='*', default= [2005, 1102],
+                    help="Examples: -i item1 item2, -i item3")
+
+    parser.add_argument('-brn', '--bottom-right-nir', action='store',
+                    type=int, nargs='*', default=[2077, 1132],
+                    help="Examples: -i item1 item2, -i item3")
 
     args = parser.parse_args()
-    
     config = vars(args)
     
     main(**config)
