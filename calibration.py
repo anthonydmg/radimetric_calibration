@@ -3,11 +3,7 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import cv2
 
-
-#cent_arr, fwhm_arr = imgparse.get_wavelength_data(row.image_path)
-
-teflon_reflectance = [0] * 380
-teflon_reflectance.extend([1] * 900)
+from teflon_reflectance import teflon_reflectance
 
 centralWavelength = [650, 548, 446, 720, 0, 840]
 wavelengthFWHM = [70, 45, 60, 40, 0, 20]
@@ -15,7 +11,10 @@ wavelengthFWHM = [70, 45, 60, 40, 0, 20]
 def get_known_panel_reflectance_band(band_index):
     cent = centralWavelength[band_index]
     wfhm = wavelengthFWHM[band_index]
-    return np.average(teflon_reflectance[cent - wfhm: cent + wfhm + 1])
+    indexes = (teflon_reflectance["wavelengths"] >= cent - wfhm) & (teflon_reflectance["wavelengths"] <= cent + wfhm)
+    indexes = [i for i, boolean_val in enumerate(indexes) if boolean_val == True]
+    print("indexes:", indexes)
+    return np.average(np.take(teflon_reflectance["reflectance"], indexes))
 
 def get_panel_reflectance_digital_number(image, band_index, top_left, bottom_right):
     image_band = image[:,:,band_index]
